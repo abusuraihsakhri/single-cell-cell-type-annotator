@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  single-cell-cell-type-annotator:
+    build: .
+    container_name: single-cell-cell-type-annotator
+    ports:
+      - "8000:8000"
+    environment:
+      - AUDIT_SECRET_KEY=single-cell-cell-type-annotator-prod-audit-key-2026
+      - MODEL_PROVIDER=mock
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
