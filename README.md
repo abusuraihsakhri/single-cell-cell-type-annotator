@@ -1,7 +1,6 @@
 # Single Cell Cell Type Annotator
 
-> **Domain:** Clinical Decision Support & Biomedical Computing  
-> **Reference Guidelines & Standards:** `Standard Clinical Formulations & ISO/IEC Quality Frameworks`
+> **Domain:** Clinical Decision Support & Biomedical Computing
 
 <div align="center">
 
@@ -18,82 +17,165 @@
 
 ## 📖 What It Does
 
-**Single Cell Cell Type Annotator** is an advanced analytical and computational platform implementing Human Cell Atlas & PanglaoDB hypergeometric marker gene cluster annotator.
+**Single Cell Cell Type Annotator** is an analytical platform implementing multi-agent evaluation workers for task payload assessment. It provides:
+
+- Multi-worker consensus evaluation with urgency classification
+- HMAC-SHA256 tamper-evident audit trail
+- Zero-PHI outbound guard blocking sensitive identifiers
+- FastAPI REST API with Prometheus metrics
+- CLI for interactive and batch processing
 
 ---
 
-## ⚙️ Key Capabilities & Algorithmic Modules
+## ⚙️ Key Capabilities
 
-- **Deterministic Calculation Engine**: Strict compliance with standard reference formulations and thresholds.
-- **Risk & Urgency Classification**: Multi-tier categorization with automated clinical/operational action recommendations.
-- **Validation & Guardrails**: Rigorous input bounds checking and anomaly detection.
+- **Multi-Worker Evaluation**: Three specialized workers (QC, Safety, Protocol Conformance) assess each task
+- **Urgency Classification**: Automatic ROUTINE / ELEVATED / CRITICAL_STAT categorization
+- **Cryptographic Audit Trail**: Chained HMAC-SHA256 signatures for tamper detection
+- **PHI Protection**: Active pattern detection blocking SSNs, MRNs, emails, and patient identifiers
+- **REST API**: FastAPI endpoints with OpenAPI 3.1 spec
+- **Batch Processing**: CSV-based bulk task evaluation
 
 ---
 
-## 💻 CLI Quickstart & Usage
+## 💻 Installation
 
-### 1. Guided Interactive Mode
 ```bash
-python cli.py
+# Clone the repository
+git clone https://github.com/abusuraihsakhri/single-cell-cell-type-annotator.git
+cd single-cell-cell-type-annotator
+
+# Install dependencies
+pip install -e .
+
+# Or with development dependencies
+pip install -e ".[dev]"
 ```
 
-### 2. Direct Parameterized Evaluation
+---
+
+## 💻 CLI Usage
+
+### 1. Single Task Evaluation
 ```bash
-python cli.py --task-id <value> --target <value> --primary <value> --secondary <value>
+python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
 ```
 
-### Parameter Reference
-- `--task-id`: Specifies input measurement or parameter value.
-- `--target`: Specifies input measurement or parameter value.
-- `--primary`: Specifies input measurement or parameter value.
-- `--secondary`: Specifies input measurement or parameter value.
-- `--critical`: Specifies input measurement or parameter value.
-- `--status`: Specifies input measurement or parameter value.
-- `--input`: Specifies input measurement or parameter value.
-- `--output`: Specifies input measurement or parameter value.
+### 2. Interactive Chat
+```bash
+python cli.py chat "What is the system status?"
+```
 
-### Input Data Schema
+### 3. Batch Processing
+```bash
+python cli.py batch -i sample.csv -o results.csv
+```
 
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `task_id` | Parameter / observation metric | Required |
-| `target_identifier` | Parameter / observation metric | Required |
-| `primary_metric` | Parameter / observation metric | Required |
-| `secondary_metric` | Parameter / observation metric | Required |
-| `is_critical_flag` | Parameter / observation metric | Required |
-| `status_descriptor` | Parameter / observation metric | Required |
+### 4. Verify Audit Trail
+```bash
+python cli.py verify-audit
+```
+
+### 5. Launch REST API Server
+```bash
+python cli.py serve --host 127.0.0.1 --port 8000
+```
+
+### Parameters
+| Flag | Description | Default |
+|:-----|:------------|:--------|
+| `--task-id` | Unique task identifier | TASK-2026-001 |
+| `--target` | Target identifier | KEY-TARGET-01 |
+| `--primary` | Primary metric (float) | 28.5 |
+| `--secondary` | Secondary metric (float) | 14.2 |
+| `--critical` | Critical flag | False |
+| `--status` | Status descriptor | DISCORDANT |
 
 ---
 
-## 🛡️ Security & Enterprise Architecture
+## 🛡️ Security
 
-* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
+### Audit Trail Secret Key
+Set the `AUDIT_SECRET_KEY` environment variable in production:
+```bash
+export AUDIT_SECRET_KEY="your-secure-random-key"
+```
+
+**Warning:** Without this variable, an insecure default is used and a warning is emitted.
+
+### Zero-PHI Guard
+The system actively scans outbound data for:
+- Medical Record Numbers (MRN)
+- Social Security Numbers (SSN)
+- Phone numbers and email addresses
+- Patient names and dates of birth
 
 ---
 
-## 🧪 Testing & Verification
-
-Run the automated test suite:
+## 🧪 Testing
 
 ```bash
+# Run full test suite
 pytest -v
-```
 
-Execute high-throughput batch simulation benchmarks:
+# Run with coverage
+pytest -v --cov=agents --cov=celltype_annotator
 
-```bash
-python simulator.py --tasks 1000 --concurrency 8
+# Run simulation benchmark
+python simulator.py --tasks 1000
 ```
 
 ---
 
-## 🐳 Container Deployment
+## 🐳 Docker Deployment
 
 ```bash
+# Build and run
+docker compose up --build
+
+# Or manually
 docker build -t single-cell-cell-type-annotator .
-docker run -p 8000:8000 single-cell-cell-type-annotator
+docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-secret single-cell-cell-type-annotator
 ```
+
+---
+
+## 📁 Project Structure
+
+```
+├── agents/                    # Enterprise agent modules
+│   ├── api.py                # FastAPI REST endpoints
+│   ├── base.py               # Security, PHI guard, audit trail
+│   ├── models.py             # Pydantic data models
+│   ├── supervisor.py         # Main orchestrator
+│   ├── workers.py            # Specialized evaluation workers
+│   └── ...
+├── celltype_annotator/       # Core annotation engine
+│   ├── agents.py             # Sub-agent implementations
+│   ├── engine.py             # Domain logic engine
+│   └── models.py             # Data models
+├── tests/                    # Test suite
+├── web/                      # Web operations console
+├── cli.py                    # Main CLI entry point
+├── enrichment.py             # Enrichment feature engines
+├── simulator.py              # High-throughput simulator
+└── pyproject.toml            # Project configuration
+```
+
+---
+
+## 📋 REST API Endpoints
+
+| Method | Path | Description |
+|:-------|:-----|:------------|
+| GET | `/health` | Health check |
+| GET | `/metrics` | Prometheus metrics |
+| POST | `/api/audit` | Submit task for evaluation |
+| POST | `/api/chat` | Supervisor chat query |
+| GET | `/api/audit/logs` | Get audit trail |
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.

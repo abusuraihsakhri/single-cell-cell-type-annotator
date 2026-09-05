@@ -3,7 +3,7 @@ Distributed Component Coordination & Executive Hierarchy for CellType-Marker: Re
 Domain: Biomedical Scientific Discovery & Multi-Omics
 """
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from .models import FrontierPayload, AgentTelemetryAlert, ExecutionStatus
 from .engine import FrontierDomainEngine
 
