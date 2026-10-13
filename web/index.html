@@ -1,236 +1,103 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Single Cell Cell Type Annotator — Operations Console</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #090d16;
-            --card: #111827;
-            --border: #1f293d;
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.25);
-            --text: #f3f4f6;
-            --text-muted: #9ca3af;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --success: #10b981;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 2rem;
-            min-height: 100vh;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .header-title h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
-        .header-title p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem; }
-        .badge {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: var(--accent-glow);
-            color: var(--accent);
-            border: 1px solid var(--accent);
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr;
-            gap: 1.5rem;
-        }
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .card h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; }
-        input, select, textarea {
-            width: 100%;
-            padding: 0.65rem 0.9rem;
-            background: #0d1322;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: #fff;
-            font-family: inherit;
-            font-size: 0.9rem;
-        }
-        input:focus, textarea:focus { outline: none; border-color: var(--accent); }
-        .btn {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 0.7rem 1.4rem;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-        }
-        .btn:hover { background: #2563eb; }
-        .terminal {
-            background: #060911;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: #10b981;
-            height: 380px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        .metrics-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .metric-box {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
-        }
-        .metric-val { font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: 0.25rem; }
-        .metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Local marker-overlap annotation with hypergeometric enrichment and BH FDR correction.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Single-cell marker annotation</title>
+  <style>
+    :root{color-scheme:light;--ink:#17243b;--sub:#53627a;--line:#d8e1ea;--bg:#f3f6fa;--panel:#fff;--primary:#1459a6}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.48 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    main{max-width:1240px;margin:auto;padding:24px 22px 56px}
+    header{margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:18px}
+    h1{font-size:clamp(1.55rem,3vw,2.25rem);margin:0 0 6px;letter-spacing:-.025em}
+    h2{font-size:1.09rem;margin:0 0 9px}
+    p{margin:6px 0;color:var(--sub)}
+    .eyebrow{font-size:.73rem;letter-spacing:.11em;text-transform:uppercase;color:var(--primary);font-weight:750}
+    .layout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:17px;min-width:0}
+    .card p{min-height:45px;font-size:.88rem}
+    label{font-size:.88rem;font-weight:650;display:block;margin:9px 0 5px}
+    textarea{height:200px;resize:vertical;width:100%;padding:11px;font:12.5px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;border:1px solid #aebfce;border-radius:8px;color:var(--ink);background:#fff}
+    input[type=file]{display:block;max-width:100%;font:12px system-ui}
+    textarea:focus-visible,input:focus-visible,button:focus-visible{outline:3px solid #83b4ec;outline-offset:2px}
+    .controls{display:flex;flex-wrap:wrap;align-items:end;gap:13px;margin:16px 0}
+    .controls label{margin:0}
+    .controls input{display:block;margin-top:6px;border-radius:7px;border:1px solid #aebfce;padding:9px;width:120px;font-size:15px}
+    button{border:1px solid var(--primary);border-radius:8px;padding:10px 17px;font:600 14px system-ui;cursor:pointer;background:var(--primary);color:#fff}
+    button.secondary{color:var(--primary);background:#fff}
+    button:disabled{cursor:not-allowed;opacity:.5}
+    .status{border-left:3px solid #4383ca;background:#e7f1fc;padding:12px 14px;border-radius:5px;margin:10px 0 18px;min-height:45px}
+    .status.error{background:#fff0ed;border-color:#c22d20;color:#9a1b14}
+    .table-wrap{overflow:auto;max-height:580px;border:1px solid var(--line);border-radius:9px}
+    table{border-collapse:collapse;width:100%;font-size:13px;min-width:820px}
+    thead{position:sticky;top:0;background:#eaf1f9}
+    th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+    tr.best{background:#eaf8f0;font-weight:620}
+    th{white-space:nowrap}
+    footer{border-top:1px solid var(--line);margin-top:22px;padding-top:16px;font-size:.86rem}
+    a{color:var(--primary)}
+    @media(max-width:900px){.layout{grid-template-columns:1fr}.card p{min-height:0}textarea{height:136px}}
+    @media(max-width:480px){main{padding:18px 12px 38px}.controls{align-items:stretch}.controls button{width:100%}}
+  </style>
+  <script src="./annotator.js" defer></script>
 </head>
 <body>
-
-    <div class="header">
-        <div class="header-title">
-            <h1>Single Cell Cell Type Annotator</h1>
-            <p>Domain: Clinical & Cryptographic AI | Standard: CAP / CLSI / NIST Standards | LabMind-Atlas Architecture</p>
-        </div>
-        <div>
-            <span class="badge">Air-Gapped Active</span>
-            <span class="badge" style="background: rgba(16,185,129,0.2); color: #10b981; border-color: #10b981;">Zero-PHI Guard Active</span>
-        </div>
+<main>
+  <header>
+    <div class="eyebrow">Single-cell RNA-seq · Exploratory annotation</div>
+    <h1>Cell-type marker overlap annotator</h1>
+    <p>Compare cluster marker genes with your own reference signatures using a one-sided hypergeometric test and Benjamini–Hochberg false discovery rate adjustment.</p>
+    <p><strong>Runs entirely in your browser.</strong> No file uploads to a server, third-party databases, model calls, or external scripts.</p>
+  </header>
+  <section class="layout" aria-label="Annotation input">
+    <div class="card">
+      <h2>1. Cluster markers</h2>
+      <p>CSV with columns <code>cluster,gene</code>; use one gene per row. Duplicates are removed.</p>
+      <label for="clusters">Cluster marker data</label>
+      <textarea id="clusters" spellcheck="false" placeholder="cluster,gene&#10;Cluster 0,CD3D&#10;Cluster 0,CD3E"></textarea>
+      <label for="cluster-file">Or load CSV (max 2 MB)</label>
+      <input id="cluster-file" type="file" accept=".csv,text/csv,text/plain">
     </div>
-
-    <div class="metrics-bar">
-        <div class="metric-box">
-            <div class="metric-label">System Status</div>
-            <div class="metric-val" style="color: var(--success);" id="m-status">OPTIMAL</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Tasks Processed</div>
-            <div class="metric-val" id="m-tasks">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Audit Blocks Signed</div>
-            <div class="metric-val" id="m-audit">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">PHI Interceptions</div>
-            <div class="metric-val" style="color: var(--accent);" id="m-phi">0</div>
-        </div>
+    <div class="card">
+      <h2>2. Reference signatures</h2>
+      <p>CSV with columns <code>cell_type,gene</code>. Supply provenance-matched marker lists for the tissue/species.</p>
+      <label for="references">Reference marker data</label>
+      <textarea id="references" spellcheck="false" placeholder="cell_type,gene&#10;T lymphocyte,CD3D&#10;T lymphocyte,CD3E"></textarea>
+      <label for="reference-file">Or load CSV (max 2 MB)</label>
+      <input id="reference-file" type="file" accept=".csv,text/csv,text/plain">
     </div>
-
-    <div class="grid">
-        <div class="card">
-            <h2>⚙️ Dispatch Distributed Component Audit</h2>
-            <div class="form-group">
-                <label>Task / Sample ID</label>
-                <input type="text" id="task_id" value="TASK-2026-LIVE-01">
-            </div>
-            <div class="form-group">
-                <label>Target Identifier</label>
-                <input type="text" id="target_id" value="SPECIMEN-ALPHA-77">
-            </div>
-            <div class="form-group">
-                <label>Primary Measurement / Value</label>
-                <input type="number" id="primary_metric" value="29.4" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Secondary Metric / Kinetic Index</label>
-                <input type="number" id="secondary_metric" value="14.8" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Status / Phenotype Descriptor</label>
-                <input type="text" id="status_descriptor" value="DISCORDANT_ANOMALY">
-            </div>
-            <div class="form-group">
-                <label><input type="checkbox" id="is_critical" checked> Trigger Emergency / Critical Flag</label>
-            </div>
-            <button class="btn" onclick="runAudit()">Execute Distributed Component Audit</button>
-        </div>
-
-        <div class="card">
-            <h2>📊 Real-Time Consensus Dossier & Audit Log</h2>
-            <div class="terminal" id="outputConsole">// Single Cell Cell Type Annotator Operations Console Ready
-// Connection established with Air-Gapped Supervisor
-// Cryptographic HMAC-SHA256 audit ledger loaded.
-// Ready for live task payload dispatch...</div>
-        </div>
+    <div class="card">
+      <h2>3. Background universe</h2>
+      <p>Enter all genes eligible for testing (e.g., expressed/tested genes), one per line or comma-separated. Never use only the union of hits as the background.</p>
+      <label for="universe">Eligible genes</label>
+      <textarea id="universe" spellcheck="false" placeholder="CD3D&#10;CD3E&#10;MS4A1&#10;..."></textarea>
+      <label for="universe-file">Or load TXT/CSV (max 2 MB)</label>
+      <input id="universe-file" type="file" accept=".txt,.csv,text/plain,text/csv">
     </div>
-
-    <script>
-        async function runAudit() {
-            const consoleEl = document.getElementById('outputConsole');
-            consoleEl.innerText = "// Dispatching task across specialized workers...
-// Invoking InvariantQCWorker, SafetyEscalationWorker, ProtocolWorker...";
-
-            const payload = {
-                task_id: document.getElementById('task_id').value,
-                target_identifier: document.getElementById('target_id').value,
-                primary_metric: parseFloat(document.getElementById('primary_metric').value),
-                secondary_metric: parseFloat(document.getElementById('secondary_metric').value),
-                status_descriptor: document.getElementById('status_descriptor').value,
-                is_critical_flag: document.getElementById('is_critical').checked
-            };
-
-            try {
-                const res = await fetch('/api/audit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                consoleEl.innerText = JSON.stringify(data, null, 2);
-                document.getElementById('m-tasks').innerText = parseInt(document.getElementById('m-tasks').innerText) + 1;
-                document.getElementById('m-audit').innerText = parseInt(document.getElementById('m-audit').innerText) + 1;
-            } catch (err) {
-                consoleEl.innerText = "// Offline / Simulation Output:\n" + JSON.stringify({
-                    dossier_id: "DOSSIER-SIM-" + Math.floor(Math.random()*10000),
-                    system: "single-cell-cell-type-annotator",
-                    domain: "Clinical & Cryptographic AI",
-                    task_id: payload.task_id,
-                    overall_urgency: payload.is_critical_flag ? "CRITICAL_STAT_PANIC" : "ELEVATED_RISK",
-                    integrity_status: "DISCORDANT_ANOMALY",
-                    alerts: [
-                        { worker: "InvariantQCWorker", alert: "Primary metric exceeds upper reference bound" },
-                        { worker: "SafetyEscalationWorker", alert: "Critical emergency interlock flag active" }
-                    ],
-                    audit_hash: "HMAC_SHA256_e83f9a72b941d6c381f9"
-                }, null, 2);
-            }
-        }
-    </script>
+  </section>
+  <section aria-label="Analysis controls" class="controls">
+    <div><label for="alpha">BH FDR cutoff</label><input type="number" id="alpha" min="0.00000001" max="1" step="any" value="0.05"></div>
+    <div><label for="overlap">Minimum overlap</label><input type="number" id="overlap" min="1" max="10000" step="1" value="1"></div>
+    <button id="run" type="button">Annotate clusters</button>
+    <button id="example" class="secondary" type="button">Load synthetic example</button>
+  </section>
+  <div role="status" aria-live="polite" id="status" class="status">Provide your data or load the synthetic example, then run annotation.</div>
+  <section id="results-section" class="card" hidden>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <div><h2>Annotation results</h2><p>Rows are sorted by cluster, adjusted p-value, then overlap. Green rows mark the best eligible match.</p></div>
+      <button type="button" id="export" class="secondary" disabled>Export full CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Cluster</th><th>Reference cell type</th><th>Overlap</th><th>p-value</th><th>BH q-value</th><th>Assignment</th><th>Shared genes</th></tr></thead>
+      <tbody id="results-body"></tbody></table>
+    </div>
+  </section>
+  <footer>
+    <strong>Statistical interpretation:</strong> Tests use the hypergeometric upper tail with a fixed supplied universe; BH correction is performed separately within each cluster, over all reference types supplied. A significant overlap is not a calibrated posterior probability or proof of cell identity. No built-in HCA, PanglaoDB, CellTypist, or expression-level analysis is included.
+    <p><a href="https://github.com/abusuraihsakhri/single-cell-cell-type-annotator">Source repository</a> · MIT license · All data stay in this browser tab unless you explicitly export them.</p>
+  </footer>
+</main>
 </body>
 </html>

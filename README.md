@@ -1,181 +1,78 @@
-# Single Cell Cell Type Annotator
+# Single-cell Cell Type Annotator
 
-> **Domain:** Clinical Decision Support & Biomedical Computing
+A reproducible **marker-overlap annotation tool** for single-cell RNA-seq cluster marker lists. Compare user-provided cluster markers against user-provided reference cell-type signatures using the exact one-sided hypergeometric tail; report Benjamini–Hochberg (BH) adjusted p-values separately for each cluster.
 
-<div align="center">
+This is an exploratory statistical annotator. It does **not** download curated atlases, infer expression-based cell identities, run CellTypist, or estimate calibrated classification probabilities.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+## Use in the browser
 
-</div>
-
----
-
-## 📖 What It Does
-
-**Single Cell Cell Type Annotator** is an analytical platform implementing multi-agent evaluation workers for task payload assessment. It provides:
-
-- Multi-worker consensus evaluation with urgency classification
-- HMAC-SHA256 tamper-evident audit trail
-- Zero-PHI outbound guard blocking sensitive identifiers
-- FastAPI REST API with Prometheus metrics
-- CLI for interactive and batch processing
-
----
-
-## ⚙️ Key Capabilities
-
-- **Multi-Worker Evaluation**: Three specialized workers (QC, Safety, Protocol Conformance) assess each task
-- **Urgency Classification**: Automatic ROUTINE / ELEVATED / CRITICAL_STAT categorization
-- **Cryptographic Audit Trail**: Chained HMAC-SHA256 signatures for tamper detection
-- **PHI Protection**: Active pattern detection blocking SSNs, MRNs, emails, and patient identifiers
-- **REST API**: FastAPI endpoints with OpenAPI 3.1 spec
-- **Batch Processing**: CSV-based bulk task evaluation
-
----
-
-## 💻 Installation
+Open `web/index.html` locally, or serve it with:
 
 ```bash
-# Clone the repository
-git clone https://github.com/abusuraihsakhri/single-cell-cell-type-annotator.git
-cd single-cell-cell-type-annotator
-
-# Install dependencies
-pip install -e .
-
-# Or with development dependencies
-pip install -e ".[dev]"
+python -m http.server 8001 --directory web
 ```
 
----
+Then open `http://localhost:8001/`. The standalone browser app has no server dependency and works without Pyodide. It does not upload files or make outbound network requests; calculation and export remain in your browser.
 
-## 💻 CLI Usage
+Supply three inputs:
 
-### 1. Single Task Evaluation
+1. **Cluster markers:** CSV columns `cluster,gene`, with one marker per row.
+2. **Reference signatures:** CSV columns `cell_type,gene`, one reference gene per row.
+3. **Background universe:** TXT/CSV containing all genes eligible for testing, separated by lines, commas, or whitespace; this must not be restricted to observed hits.
+
+Gene symbols are normalized to uppercase; duplicate symbols within each group are removed. Every cluster/reference gene must be present in the supplied universe. Choose your own FDR cutoff (default 0.05) and minimum overlap (default 1). The highest-ranked BH-significant reference becomes the assignment; otherwise a cluster is `Unassigned`. Download the full per-cluster/per-reference comparison table as CSV. Use **Load synthetic example** to check the interface.
+
+## Python CLI
+
+Requires Python 3.9 or later.
+
 ```bash
-python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
+python -m pip install -e ".[dev]"
+single-cell-cell-type-annotator annotate \
+  --markers markers.csv \
+  --references reference.csv \
+  --universe universe.txt \
+  --alpha 0.05 \
+  --min-overlap 1 \
+  -o annotations.csv
 ```
 
-### 2. Interactive Chat
-```bash
-python cli.py chat "What is the system status?"
-```
+The module also exposes `annotate_clusters()`, `hypergeom_survival()`, and `adjust_bh()` in `celltype_annotator.annotation` for programmatic use. The CLI and browser calculate the same hypergeometric test with distinct numerically stable implementations.
 
-### 3. Batch Processing
-```bash
-python cli.py batch -i sample.csv -o results.csv
-```
+## API and legacy utilities
 
-### 4. Verify Audit Trail
-```bash
-python cli.py verify-audit
-```
+Start the FastAPI service from a repository checkout:
 
-### 5. Launch REST API Server
 ```bash
 python cli.py serve --host 127.0.0.1 --port 8000
 ```
 
-### Parameters
-| Flag | Description | Default |
-|:-----|:------------|:--------|
-| `--task-id` | Unique task identifier | TASK-2026-001 |
-| `--target` | Target identifier | KEY-TARGET-01 |
-| `--primary` | Primary metric (float) | 28.5 |
-| `--secondary` | Secondary metric (float) | 14.2 |
-| `--critical` | Critical flag | False |
-| `--status` | Status descriptor | DISCORDANT |
+- `GET /`: local browser interface (when web files are present).
+- `GET /health`: API status.
+- `POST /api/annotate`: accepts `cluster_markers` and `references` maps of label to gene-list, plus `universe`, `alpha`, and `min_overlap`; returns `results`.
+- `POST /api/audit`, `POST /api/chat`, `GET /api/audit/logs`, `GET /metrics`: the preserved **legacy generic task-evaluation endpoints**, not biological annotation.
 
----
+The legacy `audit`, `batch`, `chat`, and `verify-audit` commands remain accessible through `python cli.py`. Legacy numeric thresholds are not cell-type biological standards, and mock chat does not perform clinical or scientific assessment.
 
-## 🛡️ Security
+The audit logger holds records in process memory and signs them with HMAC-SHA256. Set a strong `AUDIT_SECRET_KEY` when persistent verification across restarts is required; if unset, an ephemeral random key is used and logs cannot be verified across restarts. This is not a replacement for persisted, access-controlled audit logging. PHI pattern checking is heuristic and **does not guarantee HIPAA de-identification**; do not submit identifiable patient data.
 
-### Audit Trail Secret Key
-Set the `AUDIT_SECRET_KEY` environment variable in production:
-```bash
-export AUDIT_SECRET_KEY="your-secure-random-key"
-```
+## Interpretation and limitations
 
-**Warning:** Without this variable, an insecure default is used and a warning is emitted.
+A hypergeometric overlap p-value assesses enrichment relative to the **specified gene universe**, assuming genes are exchangeable under the null. The BH q-value controls a multiple-testing procedure over the submitted references within each cluster. The smallest q-value is not a posterior probability, and a significant result does not independently establish cell identity. Marker selection bias, correlated genes, tissue context, incomplete references, and choice of gene universe can affect results. Confirm assignments with independent gene-expression evidence, differential-expression analysis, and biological expertise.
 
-### Zero-PHI Guard
-The system actively scans outbound data for:
-- Medical Record Numbers (MRN)
-- Social Security Numbers (SSN)
-- Phone numbers and email addresses
-- Patient names and dates of birth
+No built-in HCA/PanglaoDB reference data are shipped or queried. The synthetic example is illustrative, not a validated biological dataset.
 
----
-
-## 🧪 Testing
+## Development and tests
 
 ```bash
-# Run full test suite
-pytest -v
-
-# Run with coverage
-pytest -v --cov=agents --cov=celltype_annotator
-
-# Run simulation benchmark
-python simulator.py --tasks 1000
+python -m pip install -e ".[dev]"
+python -m pytest -q
+node --test tests/browser.test.js
+node --check web/annotator.js
 ```
 
----
+The `web/` directory is a static deployable site for GitHub Pages. `.github/workflows/pages.yml` deploys that directory on changes to `master`, provided Pages is enabled and GitHub Actions has sufficient deployment permissions. The application is fully client-side; no Python-to-WebAssembly runtime is required.
 
-## 🐳 Docker Deployment
+## License
 
-```bash
-# Build and run
-docker compose up --build
-
-# Or manually
-docker build -t single-cell-cell-type-annotator .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-secret single-cell-cell-type-annotator
-```
-
----
-
-## 📁 Project Structure
-
-```
-├── agents/                    # Enterprise agent modules
-│   ├── api.py                # FastAPI REST endpoints
-│   ├── base.py               # Security, PHI guard, audit trail
-│   ├── models.py             # Pydantic data models
-│   ├── supervisor.py         # Main orchestrator
-│   ├── workers.py            # Specialized evaluation workers
-│   └── ...
-├── celltype_annotator/       # Core annotation engine
-│   ├── agents.py             # Sub-agent implementations
-│   ├── engine.py             # Domain logic engine
-│   └── models.py             # Data models
-├── tests/                    # Test suite
-├── web/                      # Web operations console
-├── cli.py                    # Main CLI entry point
-├── enrichment.py             # Enrichment feature engines
-├── simulator.py              # High-throughput simulator
-└── pyproject.toml            # Project configuration
-```
-
----
-
-## 📋 REST API Endpoints
-
-| Method | Path | Description |
-|:-------|:-----|:------------|
-| GET | `/health` | Health check |
-| GET | `/metrics` | Prometheus metrics |
-| POST | `/api/audit` | Submit task for evaluation |
-| POST | `/api/chat` | Supervisor chat query |
-| GET | `/api/audit/logs` | Get audit trail |
-
----
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
+MIT. See [LICENSE](LICENSE).

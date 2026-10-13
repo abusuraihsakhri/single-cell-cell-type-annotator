@@ -13,7 +13,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Topic :: Security/Cryptography",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 requires-python = ">=3.9"
@@ -26,6 +25,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
+    "httpx>=0.24",
 ]
 
 [project.scripts]
@@ -34,3 +34,7 @@ single-cell-cell-type-annotator = "celltype_annotator.cli:main"
 [project.urls]
 Homepage = "https://github.com/abusuraihsakhri/single-cell-cell-type-annotator"
 Repository = "https://github.com/abusuraihsakhri/single-cell-cell-type-annotator.git"
+
+[tool.setuptools]
+packages = ["agents", "celltype_annotator"]
+py-modules = ["cli", "enrichment", "simulator", "celltype_annotator_app"]

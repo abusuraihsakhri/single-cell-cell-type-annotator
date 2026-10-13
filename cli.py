@@ -13,6 +13,10 @@ supervisor = SystemSupervisor(model_provider="mock")
 
 
 def main(argv=None):
+    argv_list = list(argv) if argv is not None else sys.argv[1:]
+    if argv_list and argv_list[0] == "annotate":
+        from celltype_annotator.cli import main as annotation_main
+        return annotation_main(argv_list)
     parser = argparse.ArgumentParser(prog="single-cell-cell-type-annotator", description="Single Cell Cell Type Annotator")
     subparsers = parser.add_subparsers(dest="command", required=True)
 

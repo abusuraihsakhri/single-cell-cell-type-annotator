@@ -7,6 +7,8 @@ import json
 import sys
 from .models import FrontierPayload
 from .agents import CellTypeAnnotatorCoordinator
+from .annotation import annotate_clusters
+from pathlib import Path
 
 coordinator = CellTypeAnnotatorCoordinator()
 
@@ -38,7 +40,62 @@ def main(argv=None):
     p_serve.add_argument("--host", default="127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8000)
 
+
+    # Biological marker overlap annotation
+    p_annotate = subparsers.add_parser("annotate", help="Annotate cluster marker genes against user-supplied reference signatures")
+    p_annotate.add_argument("--markers", required=True, help="CSV columns: cluster,gene")
+    p_annotate.add_argument("--references", required=True, help="CSV columns: cell_type,gene")
+    p_annotate.add_argument("--universe", required=True, help="Text file of eligible background genes")
+    p_annotate.add_argument("-o", "--output", default="annotations.csv")
+    p_annotate.add_argument("--alpha", type=float, default=0.05)
+    p_annotate.add_argument("--min-overlap", type=int, default=1)
+
     args = parser.parse_args(argv)
+
+
+    if args.command == "annotate":
+        def read_signatures(filename, label_column):
+            groups = {}
+            with open(filename, encoding="utf-8-sig", newline="") as handle:
+                reader = csv.DictReader(handle, strict=True)
+                if not {label_column, "gene"}.issubset(reader.fieldnames or []):
+                    raise ValueError(f"{filename}: required headers are {label_column},gene")
+                for i, row in enumerate(reader, start=2):
+                    if i > 20002:
+                        raise ValueError(f"{filename}: too many marker rows")
+                    label, gene = row.get(label_column), row.get("gene")
+                    if not label or not gene or None in row:
+                        raise ValueError(f"{filename}: invalid row {i}")
+                    groups.setdefault(label.strip(), []).append(gene.strip())
+            return groups
+
+        try:
+            markers = read_signatures(args.markers, "cluster")
+            references = read_signatures(args.references, "cell_type")
+            with open(args.universe, encoding="utf-8-sig") as handle:
+                genes = handle.read().replace(",", " ").split()
+            if genes and genes[0].lower() == "gene":
+                genes.pop(0)
+            if len(genes) > 200000:
+                raise ValueError("Universe exceeds 200000 genes")
+            rows = annotate_clusters(markers, references, genes,
+                                     alpha=args.alpha, min_overlap=args.min_overlap)
+            fields = ["cluster", "cell_type", "overlap", "cluster_size", "reference_size",
+                      "universe_size", "shared_genes", "p_value", "q_value",
+                      "assignment", "is_best_match"]
+            def safe_cell(value):
+                if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+                    return "'" + value
+                return value
+            with open(args.output, "w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=fields)
+                writer.writeheader()
+                writer.writerows({key: safe_cell(row[key]) for key in fields} for row in rows)
+        except (OSError, ValueError, csv.Error) as exc:
+            print(f"Annotation error: {exc}", file=sys.stderr)
+            return 1
+        print(f"Compared {len(markers)} clusters against {len(references)} references; wrote {len(rows)} rows to {args.output}")
+        return 0
 
     if args.command == "audit":
         payload = FrontierPayload(
