@@ -64,8 +64,9 @@ def adjust_bh(p_values: list[float]) -> list[float]:
     size = len(p_values)
     adjusted = [1.0] * size
     running = 1.0
+    order = sorted(range(size), key=lambda index: (p_values[index], index))
     for rank in range(size, 0, -1):
-        i = sorted(range(size), key=lambda index: (p_values[index], index))[rank - 1]
+        i = order[rank - 1]
         running = min(running, p_values[i] * size / rank)
         adjusted[i] = min(1.0, running)
     return adjusted
