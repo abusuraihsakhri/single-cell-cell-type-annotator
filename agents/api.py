@@ -46,6 +46,13 @@ def home():
     return FileResponse(_web_dir / "index.html")
 
 
+@app.get("/annotator.js", include_in_schema=False)
+def frontend_script():
+    if not _web_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Static web assets are not installed")
+    return FileResponse(_web_dir / "annotator.js", media_type="application/javascript")
+
+
 @app.post("/api/annotate")
 def api_annotate(payload: AnnotationRequest):
     total_rows = sum(map(len, payload.cluster_markers.values())) + sum(map(len, payload.references.values()))
