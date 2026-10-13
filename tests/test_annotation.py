@@ -102,3 +102,29 @@ def test_signed_audit_detects_metadata_change():
     assert trail.verify_integrity()
     trail.logs[0]["actor"] = "other"
     assert not trail.verify_integrity()
+
+
+def test_http_end_to_end_and_static_assets():
+    from fastapi.testclient import TestClient
+    from agents.api import app
+    client = TestClient(app)
+    assert client.get("/health").status_code == 200
+    home = client.get("/")
+    assert home.status_code == 200
+    assert 'src="./annotator.js"' in home.text
+    script = client.get("/annotator.js")
+    assert script.status_code == 200
+    assert "function hypergeomSF" in script.text
+    result = client.post("/api/annotate", json={
+        "cluster_markers": {"A": ["G1", "G2"]},
+        "references": {"T": ["G1", "G2"]},
+        "universe": ["G1", "G2"] + [f"R{i}" for i in range(100)],
+    })
+    assert result.status_code == 200
+    assert result.json()["results"][0]["assignment"] == "T"
+    bad = client.post("/api/annotate", json={
+        "cluster_markers": {"A": ["OUTSIDE"]},
+        "references": {"T": ["G1"]},
+        "universe": ["G1"],
+    })
+    assert bad.status_code == 422
