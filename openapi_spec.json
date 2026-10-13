@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Single Cell Cell Type Annotator API",
-    "description": "Enterprise Distributed Component Platform (Clinical & Cryptographic AI) adhering to CAP / CLSI / NIST Standards.",
+    "description": "Marker-overlap annotation using user-provided references and universe; legacy generic audit endpoints retained.",
     "version": "3.0.0-ENTERPRISE",
     "contact": {
       "name": "Dr. Abu Suraih Sakhri",
@@ -25,7 +25,7 @@
         "summary": "Prometheus operational metrics",
         "responses": {
           "200": {
-            "description": "Prometheus text metrics"
+            "description": "JSON process counters (not Prometheus exposition text)"
           }
         }
       }
@@ -76,7 +76,7 @@
     },
     "/api/chat": {
       "post": {
-        "summary": "Air-gapped supervisory conversational assistant",
+        "summary": "Return a mock supervisory message; no model-based analysis",
         "requestBody": {
           "content": {
             "application/json": {
@@ -107,6 +107,84 @@
         "responses": {
           "200": {
             "description": "Cryptographic audit trail"
+          }
+        }
+      }
+    },
+    "/api/annotate": {
+      "post": {
+        "summary": "Annotate cluster marker overlap using hypergeometric enrichment and BH q-values",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "cluster_markers",
+                  "references",
+                  "universe"
+                ],
+                "properties": {
+                  "cluster_markers": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "references": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "universe": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "alpha": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "default": 0.05
+                  },
+                  "min_overlap": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Full per-cluster and per-reference enrichment result rows"
+          },
+          "413": {
+            "description": "Annotation input exceeds configured limits"
+          },
+          "422": {
+            "description": "Invalid markers, universe, or parameters"
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Serve local static browser annotator",
+        "responses": {
+          "200": {
+            "description": "HTML application"
           }
         }
       }
