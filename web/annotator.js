@@ -8,6 +8,7 @@
     const rows = [];
     let row = [], field = "", quoted = false;
     text = String(text || "").replace(/^\uFEFF/, "");
+    if (text.length > 2_000_000) throw new Error("CSV input exceeds 2 MB limit");
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
       if (char === '"') {
@@ -45,6 +46,7 @@
   }
 
   function parseUniverse(text) {
+    if (String(text || "").length > 2_000_000) throw new Error("Universe input exceeds 2 MB limit");
     const names = String(text || "").replace(/^\uFEFF/, "").split(/[\s,;]+/).filter(Boolean);
     if (names.length && names[0].toLowerCase() === "gene") names.shift();
     const genes = new Set(names.map(x => x.trim().toUpperCase()));
