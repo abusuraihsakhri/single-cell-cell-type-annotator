@@ -35,11 +35,14 @@ class AnnotationRequest(BaseModel):
 
 
 _web_dir = Path(__file__).resolve().parent.parent / "web"
-app.mount("/web", StaticFiles(directory=str(_web_dir)), name="web")
+if _web_dir.is_dir():
+    app.mount("/web", StaticFiles(directory=str(_web_dir)), name="web")
 
 
 @app.get("/", include_in_schema=False)
 def home():
+    if not _web_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Static web assets are not installed")
     return FileResponse(_web_dir / "index.html")
 
 
