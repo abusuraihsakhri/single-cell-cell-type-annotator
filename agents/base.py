@@ -61,12 +61,12 @@ class AuditTrail:
         if not resolved_key:
             import warnings
             warnings.warn(
-                "AUDIT_SECRET_KEY not set. Using insecure default - "
-                "set AUDIT_SECRET_KEY environment variable in production.",
+                "AUDIT_SECRET_KEY not set. Using an ephemeral random key - "
+                "set AUDIT_SECRET_KEY for stable verification across restarts.",
                 RuntimeWarning,
                 stacklevel=2,
             )
-            resolved_key = "INSECURE-DEFAULT-CHANGE-ME"
+            resolved_key = os.urandom(32).hex()
         self.secret_key = resolved_key.encode("utf-8")
         self.logs: List[Dict[str, Any]] = []
 
@@ -93,14 +93,23 @@ class AuditTrail:
         return entry
 
     def verify_integrity(self) -> bool:
-        for i, entry in enumerate(self.logs):
-            prev = self.logs[i-1]["current_hash"] if i > 0 else "GENESIS_BLOCK_0000000000000000"
-            if entry["prev_hash"] != prev:
+        previous = "GENESIS_BLOCK_0000000000000000"
+        required = ("audit_id", "timestamp", "actor", "actor_tier",
+                    "event_type", "payload_hash", "prev_hash", "current_hash")
+        for entry in self.logs:
+            if not all(isinstance(entry.get(field), str) for field in required):
                 return False
+            if not hmac.compare_digest(entry["prev_hash"], previous):
+                return False
+            signature_data = "|".join(entry[field] for field in required[:7])
+            expected = hmac.new(self.secret_key, signature_data.encode("utf-8"), hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(expected, entry["current_hash"]):
+                return False
+            previous = entry["current_hash"]
         return True
 
     def get_trail(self) -> List[Dict[str, Any]]:
-        return self.logs
+        return [entry.copy() for entry in self.logs]
 
 
 GLOBAL_AUDIT = AuditTrail()
