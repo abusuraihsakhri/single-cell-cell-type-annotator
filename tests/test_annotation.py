@@ -68,3 +68,37 @@ def test_invalid_thresholds():
             annotate_clusters({"C": ["A"]}, {"T": ["A"]}, ["A"], alpha=alpha)
     with pytest.raises(ValueError):
         annotate_clusters({"C": ["A"]}, {"T": ["A"]}, ["A"], min_overlap=0)
+
+
+def test_cli_csv_roundtrip(tmp_path):
+    from celltype_annotator.cli import main
+    markers = tmp_path / "markers.csv"
+    refs = tmp_path / "refs.csv"
+    universe = tmp_path / "universe.txt"
+    output = tmp_path / "results.csv"
+    markers.write_text("cluster,gene\nC,G1\nC,G2\n", encoding="utf-8")
+    refs.write_text("cell_type,gene\nT,G1\nT,G2\n", encoding="utf-8")
+    universe.write_text("\n".join(["G1", "G2"] + [f"R{i}" for i in range(50)]), encoding="utf-8")
+    assert main(["annotate", "--markers", str(markers), "--references", str(refs),
+                 "--universe", str(universe), "-o", str(output)]) == 0
+    assert "T" in output.read_text(encoding="utf-8")
+
+
+def test_fastapi_annotation_route_registered():
+    from agents.api import app, AnnotationRequest, api_annotate
+    assert any(getattr(route, "path", None) == "/api/annotate" for route in app.routes)
+    result = api_annotate(AnnotationRequest(
+        cluster_markers={"A": ["G1", "G2"]},
+        references={"T": ["G1", "G2"]},
+        universe=["G1", "G2"] + [f"R{i}" for i in range(100)],
+    ))
+    assert result["results"][0]["assignment"] == "T"
+
+
+def test_signed_audit_detects_metadata_change():
+    from agents.base import AuditTrail
+    trail = AuditTrail(secret_key="test-key")
+    trail.log("actor", "tier", "TEST", {"value": 1})
+    assert trail.verify_integrity()
+    trail.logs[0]["actor"] = "other"
+    assert not trail.verify_integrity()
